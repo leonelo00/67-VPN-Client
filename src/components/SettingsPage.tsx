@@ -121,6 +121,7 @@ export interface AppSettings {
   notifyKillSwitch: boolean;
   notifyConnect: boolean;
   githubRepo: string;
+  includePrerelease: boolean;
 }
 
 export const defaultSettings: AppSettings = {
@@ -219,6 +220,7 @@ export const defaultSettings: AppSettings = {
   notifyKillSwitch: true,
   notifyConnect: false,
   githubRepo: "leonelo00/67-VPN-Client",
+  includePrerelease: false,
 };
 
 interface SettingsPageProps {
@@ -290,6 +292,7 @@ export function SettingsPage({
     latest?: string;
     url?: string;
     changelog?: string;
+    isPrerelease?: boolean;
     error?: string;
   }>({ checking: false });
 
@@ -1629,6 +1632,12 @@ export function SettingsPage({
 
         {cat === "about" && (
           <>
+            <Toggle
+              label="Получать пре-релизы (Beta)"
+              desc="Ранние тестовые сборки — могут работать нестабильно"
+              checked={!!settings.includePrerelease}
+              onToggle={(v) => update("includePrerelease", v)}
+            />
             <div className="settings-card" style={{ flexDirection: "column", alignItems: "stretch", gap: 12 }}>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <span style={{ color: "var(--text-muted)", fontSize: 13 }}>Приложение</span>
@@ -1644,6 +1653,12 @@ export function SettingsPage({
               </div>
             </div>
 
+            <Toggle
+              label="Получать пре-релизы (Beta)"
+              desc="Ранние тестовые сборки — могут работать нестабильно"
+              checked={!!settings.includePrerelease}
+              onToggle={(v) => update("includePrerelease", v)}
+            />
             <div className="settings-card" style={{ flexDirection: "column", alignItems: "stretch", gap: 12 }}>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <span style={{ color: "var(--text-muted)", fontSize: 13 }}>Текущая версия</span>
@@ -1668,9 +1683,11 @@ export function SettingsPage({
                         latest_version: string;
                         url: string;
                         changelog: string;
+                        is_prerelease: boolean;
                       }>("check_github_update", {
                         repo: "leonelo00/67-VPN-Client",
                         currentVersion: "0.9.0",
+                        includePrerelease: !!settings.includePrerelease,
                       });
                       setUpdateStatus({
                         checking: false,
@@ -1678,6 +1695,7 @@ export function SettingsPage({
                         latest: res.latest_version,
                         url: res.url,
                         changelog: res.changelog,
+                        isPrerelease: res.is_prerelease,
                       });
                     } catch (err) {
                       setUpdateStatus({ checking: false, error: String(err) });
@@ -1701,6 +1719,11 @@ export function SettingsPage({
                   Обновить
                 </button>
               </div>
+              {updateStatus.isPrerelease && (
+                <div style={{ fontSize: 12, color: "#fbbf24" }}>
+                  Внимание: это пре-релиз (Beta), возможна нестабильная работа.
+                </div>
+              )}
               {updateStatus.error && (
                 <div style={{ fontSize: 12, color: "#f87171" }}>{updateStatus.error}</div>
               )}

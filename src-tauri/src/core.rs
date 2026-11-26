@@ -999,19 +999,26 @@ pub struct UpdateInfo {
     pub latest_version: String,
     pub url: String,
     pub changelog: String,
+    pub is_prerelease: bool,
 }
 
 #[tauri::command]
 pub async fn check_github_update(
     repo: String,
     current_version: String,
+    include_prerelease: Option<bool>,
 ) -> Result<UpdateInfo, String> {
     tauri::async_runtime::spawn_blocking(move || {
         let clean_repo = repo.trim().trim_matches('/');
         if clean_repo.is_empty() || !clean_repo.contains('/') {
             return Err("Укажите репозиторий в формате owner/repo".to_string());
         }
-        let api_url = format!("https://api.github.com/repos/{}/releases/latest", clean_repo);
+        let use_pre = include_prerelease.unwrap_or(false);
+        let api_url = if use_pre {
+            format!("https://api.github.com/repos/{}/releases?per_page=1", clean_repo)
+        } else {
+            format!("https://api.github.com/repos/{}/releases/latest", clean_repo)
+        };
         let mut cmd = Command::new("curl.exe");
         cmd.args(["-sL", "--max-time", "10", "-A", "67VPN/0.9.0", &api_url]);
         #[cfg(target_os = "windows")]
@@ -1020,8 +1027,14 @@ pub async fn check_github_update(
         if !output.status.success() {
             return Err("Не удалось проверить обновления".to_string());
         }
-        let json: serde_json::Value = serde_json::from_slice(&output.stdout)
+        let parsed: serde_json::Value = serde_json::from_slice(&output.stdout)
             .map_err(|_| "Некорректный ответ GitHub API".to_string())?;
+        let json = if use_pre {
+            parsed.as_array().and_then(|a| a.first()).cloned().ok_or_else(|| "Релизы не найдены".to_string())?
+        } else {
+            parsed
+        };
+        let is_prerelease = json.get("prerelease").and_then(|v| v.as_bool()).unwrap_or(false);
         let tag = json
             .get("tag_name")
             .and_then(|v| v.as_str())
@@ -1063,6 +1076,7 @@ pub async fn check_github_update(
             latest_version: tag,
             url: exe_url,
             changelog,
+            is_prerelease,
         })
     })
     .await
