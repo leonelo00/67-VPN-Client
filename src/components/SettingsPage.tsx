@@ -400,13 +400,19 @@ export function SettingsPage({
               label="Сворачивать в трей при закрытии"
               desc="Кнопка закрытия прячет окно в трей вместо выхода"
               checked={settings.minimizeToTray}
-              onToggle={(v) => update("minimizeToTray", v)}
+              onToggle={(v) => {
+                update("minimizeToTray", v);
+                invoke("set_minimize_to_tray", { enable: v }).catch(() => {});
+              }}
             />
             <Toggle
               label="Завершать ядра при принудительном закрытии"
               desc="Автоматически останавливать sing-box и xray, если клиент снят через Диспетчер задач"
               checked={settings.killChildrenOnExit !== false}
-              onToggle={(v) => update("killChildrenOnExit", v)}
+              onToggle={(v) => {
+                update("killChildrenOnExit", v);
+                invoke("set_kill_on_exit", { enable: v }).catch(() => {});
+              }}
             />
           </>
         )}
@@ -1635,7 +1641,7 @@ export function SettingsPage({
             <div className="settings-card" style={{ flexDirection: "column", alignItems: "stretch", gap: 12 }}>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <span style={{ color: "var(--text-muted)", fontSize: 13 }}>Приложение</span>
-                <span style={{ fontWeight: 600, fontSize: 13 }}>67 VPN v0.9.0</span>
+                <span style={{ fontWeight: 600, fontSize: 13 }}>67 VPN v0.9.1</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <span style={{ color: "var(--text-muted)", fontSize: 13 }}>Движок</span>
@@ -1656,7 +1662,7 @@ export function SettingsPage({
             <div className="settings-card" style={{ flexDirection: "column", alignItems: "stretch", gap: 12 }}>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <span style={{ color: "var(--text-muted)", fontSize: 13 }}>Текущая версия</span>
-                <span style={{ fontWeight: 600, fontSize: 13 }}>v0.9.0</span>
+                <span style={{ fontWeight: 600, fontSize: 13 }}>v0.9.1</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <span style={{ color: "var(--text-muted)", fontSize: 13 }}>Новая версия</span>
@@ -1680,7 +1686,7 @@ export function SettingsPage({
                         is_prerelease: boolean;
                       }>("check_github_update", {
                         repo: "leonelo00/67-VPN-Client",
-                        currentVersion: "0.9.0",
+                        currentVersion: "0.9.1",
                         includePrerelease: !!settings.includePrerelease,
                       });
                       setUpdateStatus({

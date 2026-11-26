@@ -84,6 +84,57 @@ fn assign_child_to_job(job_handle: usize, child: &Child) {
     }
 }
 
+#[cfg(target_os = "windows")]
+fn set_job_kill_on_close(job_handle: usize, enable: bool) {
+    if job_handle == 0 {
+        return;
+    }
+    #[repr(C)]
+    struct BasicLimitInfo {
+        per_process_user_time_limit: i64,
+        per_job_user_time_limit: i64,
+        limit_flags: u32,
+        minimum_working_set_size: usize,
+        maximum_working_set_size: usize,
+        active_process_limit: u32,
+        affinity: usize,
+        priority_class: u32,
+        scheduling_class: u32,
+    }
+    #[repr(C)]
+    struct IoCounters {
+        _data: [u64; 6],
+    }
+    #[repr(C)]
+    struct ExtendedLimitInfo {
+        basic: BasicLimitInfo,
+        io: IoCounters,
+        process_memory_limit: usize,
+        job_memory_limit: usize,
+        peak_process_memory_used: usize,
+        peak_job_memory_used: usize,
+    }
+    #[link(name = "kernel32")]
+    unsafe extern "system" {
+        fn SetInformationJobObject(
+            job: *mut std::ffi::c_void,
+            class: u32,
+            info: *const std::ffi::c_void,
+            len: u32,
+        ) -> i32;
+    }
+    unsafe {
+        let mut info: ExtendedLimitInfo = std::mem::zeroed();
+        info.basic.limit_flags = if enable { 0x2000 } else { 0 };
+        let _ = SetInformationJobObject(
+            job_handle as *mut std::ffi::c_void,
+            9, // JobObjectExtendedLimitInformation
+            &info as *const _ as *const std::ffi::c_void,
+            std::mem::size_of::<ExtendedLimitInfo>() as u32,
+        );
+    }
+}
+
 pub struct CoreManager {
     pub child: Option<Child>,
     pub aux_child: Option<Child>,
@@ -92,6 +143,7 @@ pub struct CoreManager {
     pub active_core: Option<String>,
     pub last_traffic: (u64, u64),
     pub minimize_to_tray: bool,
+    pub kill_on_exit: bool,
     pub job_handle: usize,
 }
 
@@ -109,6 +161,7 @@ impl CoreManager {
             active_core: None,
             last_traffic: (0, 0),
             minimize_to_tray: true,
+            kill_on_exit: true,
             job_handle,
         }
     }
@@ -288,8 +341,11 @@ pub fn connect_vpn(
     let mut child = cmd
         .spawn()
         .map_err(|e| format!("Ошибка запуска {}: {}", core, e))?;
+    let should_kill = kill_on_exit.unwrap_or(true);
+    manager.kill_on_exit = should_kill;
     #[cfg(target_os = "windows")]
-    if kill_on_exit.unwrap_or(true) {
+    {
+        set_job_kill_on_close(manager.job_handle, should_kill);
         assign_child_to_job(manager.job_handle, &child);
     }
 
@@ -354,9 +410,7 @@ pub fn connect_vpn(
             .spawn()
             .map_err(|e| format!("Ошибка запуска {}: {}", a_core, e))?;
         #[cfg(target_os = "windows")]
-        if kill_on_exit.unwrap_or(true) {
-            assign_child_to_job(manager.job_handle, &a_child);
-        }
+        assign_child_to_job(manager.job_handle, &a_child);
         std::thread::sleep(Duration::from_millis(350));
         if let Ok(Some(status)) = a_child.try_wait() {
             let mut err_out = String::new();
@@ -830,6 +884,18 @@ pub fn set_minimize_to_tray(
 ) -> Result<(), String> {
     let mut manager = state.lock().map_err(|e| e.to_string())?;
     manager.minimize_to_tray = enable;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn set_kill_on_exit(
+    state: tauri::State<'_, SharedCore>,
+    enable: bool,
+) -> Result<(), String> {
+    let mut manager = state.lock().map_err(|e| e.to_string())?;
+    manager.kill_on_exit = enable;
+    #[cfg(target_os = "windows")]
+    set_job_kill_on_close(manager.job_handle, enable);
     Ok(())
 }
 

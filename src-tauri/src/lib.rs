@@ -4,7 +4,7 @@ use core::{
     clear_logs, connect_vpn, disconnect_vpn, download_and_run_update, fetch_subscription, get_logs, get_traffic_stats,
     check_github_update, is_core_running, list_installed_apps, list_running_processes, load_state, pick_exe_file,
     ping_icmp, ping_server, ping_url, read_clipboard, restart_as_admin, save_state, send_notification, set_autostart,
-    set_kill_switch, set_log_limit, set_minimize_to_tray, set_system_proxy, CoreManager, SharedCore,
+    set_kill_on_exit, set_kill_switch, set_log_limit, set_minimize_to_tray, set_system_proxy, CoreManager, SharedCore,
 };
 use std::sync::{Arc, Mutex};
 use tauri::{
@@ -92,6 +92,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
             if let Some(win) = app.get_webview_window("main") {
+                let _ = win.unminimize();
                 let _ = win.show();
                 let _ = win.set_focus();
             }
@@ -109,6 +110,7 @@ pub fn run() {
                     let id = event.id.as_ref();
                     if id == "show" {
                         if let Some(win) = app.get_webview_window("main") {
+                            let _ = win.unminimize();
                             let _ = win.show();
                             let _ = win.set_focus();
                         }
@@ -126,6 +128,7 @@ pub fn run() {
                     {
                         let app = tray.app_handle();
                         if let Some(win) = app.get_webview_window("main") {
+                            let _ = win.unminimize();
                             let _ = win.show();
                             let _ = win.set_focus();
                         }
@@ -189,6 +192,7 @@ pub fn run() {
             list_installed_apps,
             pick_exe_file,
             is_core_running,
+            set_kill_on_exit,
             set_kill_switch,
             set_log_limit,
             set_minimize_to_tray,
@@ -204,13 +208,15 @@ pub fn run() {
                 let _ = set_system_proxy(false, 10808);
                 let _ = set_kill_switch(false);
                 if let Ok(mut mgr) = core_for_exit.lock() {
-                    if let Some(mut child) = mgr.child.take() {
-                        let _ = child.kill();
-                        let _ = child.wait();
-                    }
-                    if let Some(mut aux) = mgr.aux_child.take() {
-                        let _ = aux.kill();
-                        let _ = aux.wait();
+                    if mgr.kill_on_exit {
+                        if let Some(mut child) = mgr.child.take() {
+                            let _ = child.kill();
+                            let _ = child.wait();
+                        }
+                        if let Some(mut aux) = mgr.aux_child.take() {
+                            let _ = aux.kill();
+                            let _ = aux.wait();
+                        }
                     }
                 }
             }

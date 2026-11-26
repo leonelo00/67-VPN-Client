@@ -652,8 +652,8 @@ function MainApp() {
         </nav>
 
         <div className="sidebar-footer">
-          <span>v0.9.0</span>
-          <span>{core === "auto" ? "Auto Core" : core}</span>
+          <span>v0.9.1</span>
+          <span>{connected ? (mode === "tun" ? "TUN" : "Proxy") : "Оффлайн"}</span>
         </div>
       </aside>
 

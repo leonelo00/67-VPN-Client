@@ -45,7 +45,8 @@ function pushParsedRuleGroup(
     }
     if (item.startsWith("geosite:")) {
       const name = item.slice(8).trim().toLowerCase();
-      if (name) {
+      // Skip categories that do not exist in SagerNet/sing-geosite (avoid 404 FATAL)
+      if (name && name !== "win-spy" && name !== "whitelist") {
         const tag = `geosite-${name}`;
         ruleSets.set(tag, {
           tag,
