@@ -1632,12 +1632,6 @@ export function SettingsPage({
 
         {cat === "about" && (
           <>
-            <Toggle
-              label="Получать пре-релизы (Beta)"
-              desc="Ранние тестовые сборки — могут работать нестабильно"
-              checked={!!settings.includePrerelease}
-              onToggle={(v) => update("includePrerelease", v)}
-            />
             <div className="settings-card" style={{ flexDirection: "column", alignItems: "stretch", gap: 12 }}>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <span style={{ color: "var(--text-muted)", fontSize: 13 }}>Приложение</span>
@@ -1708,11 +1702,15 @@ export function SettingsPage({
                   className="primary-btn"
                   style={{ flex: 1, opacity: updateStatus.hasUpdate && updateStatus.url ? 1 : 0.45 }}
                   disabled={!updateStatus.hasUpdate || !updateStatus.url}
-                  onClick={() => {
+                  onClick={async () => {
                     if (updateStatus.url) {
-                      import("@tauri-apps/plugin-opener").then((m) =>
-                        m.openUrl(updateStatus.url!)
-                      );
+                      try {
+                        await invoke("download_and_run_update", { url: updateStatus.url });
+                      } catch {
+                        import("@tauri-apps/plugin-opener").then((m) =>
+                          m.openUrl(updateStatus.url!)
+                        );
+                      }
                     }
                   }}
                 >

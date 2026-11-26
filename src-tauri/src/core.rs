@@ -1049,20 +1049,37 @@ pub async fn check_github_update(
             .and_then(|v| v.as_str())
             .unwrap_or("")
             .to_string();
+        let arch_tag = match std::env::consts::ARCH {
+            "x86_64" => "x64",
+            "aarch64" => "arm64",
+            "x86" => "x86",
+            other => other,
+        };
         let exe_url = json
             .get("assets")
             .and_then(|a| a.as_array())
             .and_then(|arr| {
-                arr.iter().find_map(|item| {
-                    let name = item.get("name").and_then(|n| n.as_str()).unwrap_or("");
-                    if name.ends_with(".exe") {
-                        item.get("browser_download_url").and_then(|u| u.as_str()).map(|s| s.to_string())
-                    } else {
-                        None
-                    }
-                })
+                arr.iter()
+                    .find_map(|item| {
+                        let name = item.get("name").and_then(|n| n.as_str()).unwrap_or("").to_lowercase();
+                        if name.ends_with(".exe") && name.contains(arch_tag) {
+                            item.get("browser_download_url").and_then(|u| u.as_str()).map(|s| s.to_string())
+                        } else {
+                            None
+                        }
+                    })
+                    .or_else(|| {
+                        arr.iter().find_map(|item| {
+                            let name = item.get("name").and_then(|n| n.as_str()).unwrap_or("").to_lowercase();
+                            if name.ends_with(".exe") {
+                                item.get("browser_download_url").and_then(|u| u.as_str()).map(|s| s.to_string())
+                            } else {
+                                None
+                            }
+                        })
+                    })
             })
-            .unwrap_or(html_url);
+            .unwrap_or_default();
         let changelog = json
             .get("body")
             .and_then(|v| v.as_str())
@@ -1081,4 +1098,38 @@ pub async fn check_github_update(
     })
     .await
     .map_err(|e| e.to_string())?
+}
+
+
+#[tauri::command]
+pub async fn download_and_run_update(
+    app: tauri::AppHandle,
+    url: String,
+) -> Result<(), String> {
+    if !url.ends_with(".exe") {
+        return Err("NOT_EXE".to_string());
+    }
+    let tmp_exe = std::env::temp_dir().join("67VPN_Setup.exe");
+    let tmp_str = tmp_exe.to_string_lossy().to_string();
+    let url_clone = url.clone();
+
+    tauri::async_runtime::spawn_blocking(move || {
+        let mut cmd = Command::new("curl.exe");
+        cmd.args(["-sL", "--max-time", "120", "-o", &tmp_str, &url_clone]);
+        #[cfg(target_os = "windows")]
+        cmd.creation_flags(0x08000000);
+        let output = cmd.output().map_err(|e| format!("Ошибка загрузки: {}", e))?;
+        if !output.status.success() {
+            return Err("Не удалось скачать обновление".to_string());
+        }
+        Command::new(&tmp_str)
+            .spawn()
+            .map_err(|e| format!("Не удалось запустить установщик: {}", e))?;
+        Ok::<(), String>(())
+    })
+    .await
+    .map_err(|e| e.to_string())??;
+
+    app.exit(0);
+    Ok(())
 }

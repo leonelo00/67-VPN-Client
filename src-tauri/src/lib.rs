@@ -1,7 +1,7 @@
 mod core;
 
 use core::{
-    clear_logs, connect_vpn, disconnect_vpn, fetch_subscription, get_logs, get_traffic_stats,
+    clear_logs, connect_vpn, disconnect_vpn, download_and_run_update, fetch_subscription, get_logs, get_traffic_stats,
     check_github_update, is_core_running, list_installed_apps, list_running_processes, load_state, pick_exe_file,
     ping_icmp, ping_server, ping_url, read_clipboard, restart_as_admin, save_state, send_notification, set_autostart,
     set_kill_switch, set_log_limit, set_minimize_to_tray, set_system_proxy, CoreManager, SharedCore,
@@ -194,7 +194,8 @@ pub fn run() {
             set_minimize_to_tray,
             send_notification,
             restart_as_admin,
-            check_github_update
+            check_github_update,
+            download_and_run_update
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

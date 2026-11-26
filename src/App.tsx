@@ -1040,14 +1040,17 @@ function MainApp() {
               </button>
               <button
                 className="primary-btn"
-                onClick={() => {
-                  import("@tauri-apps/plugin-opener").then((m) =>
-                    m.openUrl(updateModal.url)
-                  );
+                onClick={async () => {
+                  const url = updateModal.url;
                   setUpdateModal(null);
+                  try {
+                    await invoke("download_and_run_update", { url });
+                  } catch {
+                    import("@tauri-apps/plugin-opener").then((m) => m.openUrl(url));
+                  }
                 }}
               >
-                Скачать
+                Обновить
               </button>
             </div>
           </div>
