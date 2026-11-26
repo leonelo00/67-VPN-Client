@@ -1567,7 +1567,7 @@ export function SettingsPage({
                   const url = URL.createObjectURL(blob);
                   const a = document.createElement("a");
                   a.href = url;
-                  a.download = "aether-vpn-backup.json";
+                  a.download = "67-vpn-backup.json";
                   a.click();
                   URL.revokeObjectURL(url);
                   setBackupMsg("Резервная копия сохранена");
@@ -1644,19 +1644,21 @@ export function SettingsPage({
               </div>
             </div>
 
-            <div className="settings-card" style={{ flexDirection: "column", alignItems: "stretch", gap: 10 }}>
-              <div style={{ fontWeight: 600, fontSize: 13.5 }}>Обновления (GitHub Releases)</div>
-              <input
-                type="text"
-                className="search-input"
-                style={{ paddingLeft: 10 }}
-                placeholder="owner/repo (например: leonelo/VPNClient)"
-                value={settings.githubRepo || ""}
-                onChange={(e) => update("githubRepo", e.target.value)}
-              />
-              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <div className="settings-card" style={{ flexDirection: "column", alignItems: "stretch", gap: 12 }}>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span style={{ color: "var(--text-muted)", fontSize: 13 }}>Текущая версия</span>
+                <span style={{ fontWeight: 600, fontSize: 13 }}>v0.9.0</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span style={{ color: "var(--text-muted)", fontSize: 13 }}>Новая версия</span>
+                <span style={{ fontWeight: 600, fontSize: 13, color: updateStatus.hasUpdate ? "var(--accent)" : "var(--text-primary)" }}>
+                  {updateStatus.latest ? `v${updateStatus.latest}` : "—"}
+                </span>
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
                 <button
-                  className="primary-btn"
+                  className="check-btn"
+                  style={{ flex: 1, justifyContent: "center" }}
                   disabled={updateStatus.checking}
                   onClick={async () => {
                     setUpdateStatus({ checking: true });
@@ -1667,7 +1669,7 @@ export function SettingsPage({
                         url: string;
                         changelog: string;
                       }>("check_github_update", {
-                        repo: settings.githubRepo || "",
+                        repo: "leonelo00/67-VPN-Client",
                         currentVersion: "0.9.0",
                       });
                       setUpdateStatus({
@@ -1682,48 +1684,42 @@ export function SettingsPage({
                     }
                   }}
                 >
-                  {updateStatus.checking ? "Проверка..." : "Проверить обновления"}
+                  {updateStatus.checking ? "Проверка..." : "Проверка обновлений"}
                 </button>
-                {updateStatus.hasUpdate && updateStatus.url && (
-                  <button
-                    className="check-btn"
-                    style={{ borderColor: "var(--accent)", color: "var(--accent)" }}
-                    onClick={() => {
+                <button
+                  className="primary-btn"
+                  style={{ flex: 1, opacity: updateStatus.hasUpdate && updateStatus.url ? 1 : 0.45 }}
+                  disabled={!updateStatus.hasUpdate || !updateStatus.url}
+                  onClick={() => {
+                    if (updateStatus.url) {
                       import("@tauri-apps/plugin-opener").then((m) =>
                         m.openUrl(updateStatus.url!)
                       );
-                    }}
-                  >
-                    Скачать v{updateStatus.latest}
-                  </button>
-                )}
+                    }
+                  }}
+                >
+                  Обновить
+                </button>
               </div>
               {updateStatus.error && (
                 <div style={{ fontSize: 12, color: "#f87171" }}>{updateStatus.error}</div>
               )}
-              {updateStatus.hasUpdate === false && (
-                <div style={{ fontSize: 12, color: "var(--accent)" }}>
-                  Установлена актуальная версия (v{updateStatus.latest})
-                </div>
-              )}
-              {updateStatus.changelog && (
-                <div
-                  style={{
-                    marginTop: 4,
-                    padding: 10,
-                    borderRadius: 8,
-                    background: "rgba(0,0,0,0.28)",
-                    border: "1px solid var(--border-color)",
-                    fontSize: 12,
-                    color: "var(--text-secondary)",
-                    whiteSpace: "pre-wrap",
-                    maxHeight: 160,
-                    overflowY: "auto",
-                  }}
-                >
-                  {updateStatus.changelog}
-                </div>
-              )}
+              <div
+                style={{
+                  padding: 10,
+                  borderRadius: 8,
+                  background: "rgba(0,0,0,0.28)",
+                  border: "1px solid var(--border-color)",
+                  fontSize: 12,
+                  color: "var(--text-secondary)",
+                  whiteSpace: "pre-wrap",
+                  minHeight: 80,
+                  maxHeight: 160,
+                  overflowY: "auto",
+                }}
+              >
+                {updateStatus.changelog || "Changelog появится после проверки обновлений."}
+              </div>
             </div>
           </>
         )}

@@ -687,7 +687,7 @@ pub fn set_autostart(enable: bool) -> Result<(), String> {
                 "/F",
             ]);
         } else {
-            cmd.args(["/Delete", "/TN", "AetherVPN", "/F"]);
+            cmd.args(["/Delete", "/TN", "67VPN", "/F"]);
         }
         let output = cmd.output().map_err(|e| e.to_string())?;
         if !output.status.success() && enable {

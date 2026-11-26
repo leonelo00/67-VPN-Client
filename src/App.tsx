@@ -276,27 +276,25 @@ function MainApp() {
     if (settings.autoConnect && selectedServer.rawUri) {
       connectServer();
     }
-    if (settings.githubRepo && settings.githubRepo.includes("/")) {
-      invoke<{
-        has_update: boolean;
-        latest_version: string;
-        url: string;
-        changelog: string;
-      }>("check_github_update", {
-        repo: settings.githubRepo,
-        currentVersion: "0.9.0",
+    invoke<{
+      has_update: boolean;
+      latest_version: string;
+      url: string;
+      changelog: string;
+    }>("check_github_update", {
+      repo: "leonelo00/67-VPN-Client",
+      currentVersion: "0.9.0",
+    })
+      .then((res) => {
+        if (res.has_update) {
+          setUpdateModal({
+            version: res.latest_version,
+            url: res.url,
+            changelog: res.changelog,
+          });
+        }
       })
-        .then((res) => {
-          if (res.has_update) {
-            setUpdateModal({
-              version: res.latest_version,
-              url: res.url,
-              changelog: res.changelog,
-            });
-          }
-        })
-        .catch(() => {});
-    }
+      .catch(() => {});
     if (settings.subUpdateOnStart) {
       const withUrl = groups.filter((g) => g.url);
       if (withUrl.length > 0) {
