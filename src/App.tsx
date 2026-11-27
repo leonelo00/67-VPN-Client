@@ -28,6 +28,8 @@ import {
 } from "./components/SettingsPage";
 import { SubscriptionGroup, ServerNode } from "./utils/parser";
 import { buildCoreConfig, buildSingBoxTunBridgeConfig } from "./utils/configBuilder";
+import { APP_VERSION } from "./version";
+import { MarkdownText } from "./components/MarkdownText";
 import logoImg from "./assets/logo.jpg";
 import "./App.css";
 
@@ -226,6 +228,49 @@ function MainApp() {
             if (merged.startMinimized) {
               getCurrentWindow().hide().catch(() => {});
             }
+            invoke<{
+              has_update: boolean;
+              latest_version: string;
+              url: string;
+              changelog: string;
+              is_prerelease: boolean;
+            }>("check_github_update", {
+              repo: "leonelo00/67-VPN-Client",
+              currentVersion: APP_VERSION,
+              includePrerelease: !!merged.includePrerelease,
+            })
+              .then((res) => {
+                if (res.has_update && res.url) {
+                  setUpdateModal({
+                    version: res.latest_version,
+                    url: res.url,
+                    changelog: res.changelog,
+                  });
+                }
+              })
+              .catch(() => {});
+          } else {
+            invoke<{
+              has_update: boolean;
+              latest_version: string;
+              url: string;
+              changelog: string;
+              is_prerelease: boolean;
+            }>("check_github_update", {
+              repo: "leonelo00/67-VPN-Client",
+              currentVersion: APP_VERSION,
+              includePrerelease: false,
+            })
+              .then((res) => {
+                if (res.has_update && res.url) {
+                  setUpdateModal({
+                    version: res.latest_version,
+                    url: res.url,
+                    changelog: res.changelog,
+                  });
+                }
+              })
+              .catch(() => {});
           }
           if (typeof parsed.totalBytes === "number") setTotalBytes(parsed.totalBytes);
         }
@@ -477,6 +522,13 @@ function MainApp() {
     if (connected) {
       await disconnectServer();
     } else {
+      if (mode === "tun") {
+        const elevated = await invoke<boolean>("is_admin").catch(() => true);
+        if (!elevated) {
+          setAdminModalOpen(true);
+          return;
+        }
+      }
       await connectServer();
     }
   };
@@ -652,7 +704,7 @@ function MainApp() {
         </nav>
 
         <div className="sidebar-footer">
-          <span>v0.9.1</span>
+          <span>v{APP_VERSION}</span>
           <span>{connected ? (mode === "tun" ? "TUN" : "Proxy") : "Оффлайн"}</span>
         </div>
       </aside>
@@ -865,6 +917,49 @@ function MainApp() {
             if (merged.startMinimized) {
               getCurrentWindow().hide().catch(() => {});
             }
+            invoke<{
+              has_update: boolean;
+              latest_version: string;
+              url: string;
+              changelog: string;
+              is_prerelease: boolean;
+            }>("check_github_update", {
+              repo: "leonelo00/67-VPN-Client",
+              currentVersion: APP_VERSION,
+              includePrerelease: !!merged.includePrerelease,
+            })
+              .then((res) => {
+                if (res.has_update && res.url) {
+                  setUpdateModal({
+                    version: res.latest_version,
+                    url: res.url,
+                    changelog: res.changelog,
+                  });
+                }
+              })
+              .catch(() => {});
+          } else {
+            invoke<{
+              has_update: boolean;
+              latest_version: string;
+              url: string;
+              changelog: string;
+              is_prerelease: boolean;
+            }>("check_github_update", {
+              repo: "leonelo00/67-VPN-Client",
+              currentVersion: APP_VERSION,
+              includePrerelease: false,
+            })
+              .then((res) => {
+                if (res.has_update && res.url) {
+                  setUpdateModal({
+                    version: res.latest_version,
+                    url: res.url,
+                    changelog: res.changelog,
+                  });
+                }
+              })
+              .catch(() => {});
           }
                 if (typeof parsed.totalBytes === "number") setTotalBytes(parsed.totalBytes);
                 return true;
@@ -1028,11 +1123,10 @@ function MainApp() {
                 border: "1px solid var(--border-color)",
                 fontSize: 12.5,
                 color: "var(--text-secondary)",
-                whiteSpace: "pre-wrap",
                 maxHeight: 200,
               }}
             >
-              {updateModal.changelog}
+              <MarkdownText text={updateModal.changelog} />
             </div>
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
               <button className="check-btn" onClick={() => setUpdateModal(null)}>

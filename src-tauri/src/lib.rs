@@ -2,7 +2,7 @@ mod core;
 
 use core::{
     clear_logs, connect_vpn, disconnect_vpn, download_and_run_update, fetch_subscription, get_logs, get_traffic_stats,
-    check_github_update, is_core_running, list_installed_apps, list_running_processes, load_state, pick_exe_file,
+    check_github_update, is_admin, is_core_running, list_installed_apps, list_running_processes, load_state, pick_exe_file,
     ping_icmp, ping_server, ping_url, read_clipboard, restart_as_admin, save_state, send_notification, set_autostart,
     set_kill_on_exit, set_kill_switch, set_log_limit, set_minimize_to_tray, set_system_proxy, CoreManager, SharedCore,
 };
@@ -191,6 +191,7 @@ pub fn run() {
             list_running_processes,
             list_installed_apps,
             pick_exe_file,
+            is_admin,
             is_core_running,
             set_kill_on_exit,
             set_kill_switch,

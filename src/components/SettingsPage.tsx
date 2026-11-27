@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { AboutSettings } from "./settings/AboutSettings";
 import {
   Sliders,
   Cpu,
@@ -286,15 +287,6 @@ export function SettingsPage({
   const [runningProcs, setRunningProcs] = useState<{ name: string; path: string }[]>([]);
   const [procSearch, setProcSearch] = useState("");
   const [selectedProcs, setSelectedProcs] = useState<Record<string, boolean>>({});
-  const [updateStatus, setUpdateStatus] = useState<{
-    checking: boolean;
-    hasUpdate?: boolean;
-    latest?: string;
-    url?: string;
-    changelog?: string;
-    isPrerelease?: boolean;
-    error?: string;
-  }>({ checking: false });
 
   const update = <K extends keyof AppSettings>(key: K, val: AppSettings[K]) => {
     setSettings((prev) => ({ ...prev, [key]: val }));
@@ -1637,118 +1629,10 @@ export function SettingsPage({
         )}
 
         {cat === "about" && (
-          <>
-            <div className="settings-card" style={{ flexDirection: "column", alignItems: "stretch", gap: 12 }}>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ color: "var(--text-muted)", fontSize: 13 }}>Приложение</span>
-                <span style={{ fontWeight: 600, fontSize: 13 }}>67 VPN v0.9.1</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ color: "var(--text-muted)", fontSize: 13 }}>Движок</span>
-                <span style={{ fontWeight: 600, fontSize: 13 }}>Rust + React (Tauri v2)</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ color: "var(--text-muted)", fontSize: 13 }}>VPN-ядра</span>
-                <span style={{ fontWeight: 600, fontSize: 13 }}>sing-box + Xray-core</span>
-              </div>
-            </div>
-
-            <Toggle
-              label="Получать пре-релизы (Beta)"
-              desc="Ранние тестовые сборки — могут работать нестабильно"
-              checked={!!settings.includePrerelease}
-              onToggle={(v) => update("includePrerelease", v)}
-            />
-            <div className="settings-card" style={{ flexDirection: "column", alignItems: "stretch", gap: 12 }}>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ color: "var(--text-muted)", fontSize: 13 }}>Текущая версия</span>
-                <span style={{ fontWeight: 600, fontSize: 13 }}>v0.9.1</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ color: "var(--text-muted)", fontSize: 13 }}>Новая версия</span>
-                <span style={{ fontWeight: 600, fontSize: 13, color: updateStatus.hasUpdate ? "var(--accent)" : "var(--text-primary)" }}>
-                  {updateStatus.latest ? `v${updateStatus.latest}` : "—"}
-                </span>
-              </div>
-              <div style={{ display: "flex", gap: 8 }}>
-                <button
-                  className="check-btn"
-                  style={{ flex: 1, justifyContent: "center" }}
-                  disabled={updateStatus.checking}
-                  onClick={async () => {
-                    setUpdateStatus({ checking: true });
-                    try {
-                      const res = await invoke<{
-                        has_update: boolean;
-                        latest_version: string;
-                        url: string;
-                        changelog: string;
-                        is_prerelease: boolean;
-                      }>("check_github_update", {
-                        repo: "leonelo00/67-VPN-Client",
-                        currentVersion: "0.9.1",
-                        includePrerelease: !!settings.includePrerelease,
-                      });
-                      setUpdateStatus({
-                        checking: false,
-                        hasUpdate: res.has_update,
-                        latest: res.latest_version,
-                        url: res.url,
-                        changelog: res.changelog,
-                        isPrerelease: res.is_prerelease,
-                      });
-                    } catch (err) {
-                      setUpdateStatus({ checking: false, error: String(err) });
-                    }
-                  }}
-                >
-                  {updateStatus.checking ? "Проверка..." : "Проверка обновлений"}
-                </button>
-                <button
-                  className="primary-btn"
-                  style={{ flex: 1, opacity: updateStatus.hasUpdate && updateStatus.url ? 1 : 0.45 }}
-                  disabled={!updateStatus.hasUpdate || !updateStatus.url}
-                  onClick={async () => {
-                    if (updateStatus.url) {
-                      try {
-                        await invoke("download_and_run_update", { url: updateStatus.url });
-                      } catch {
-                        import("@tauri-apps/plugin-opener").then((m) =>
-                          m.openUrl(updateStatus.url!)
-                        );
-                      }
-                    }
-                  }}
-                >
-                  Обновить
-                </button>
-              </div>
-              {updateStatus.isPrerelease && (
-                <div style={{ fontSize: 12, color: "#fbbf24" }}>
-                  Внимание: это пре-релиз (Beta), возможна нестабильная работа.
-                </div>
-              )}
-              {updateStatus.error && (
-                <div style={{ fontSize: 12, color: "#f87171" }}>{updateStatus.error}</div>
-              )}
-              <div
-                style={{
-                  padding: 10,
-                  borderRadius: 8,
-                  background: "rgba(0,0,0,0.28)",
-                  border: "1px solid var(--border-color)",
-                  fontSize: 12,
-                  color: "var(--text-secondary)",
-                  whiteSpace: "pre-wrap",
-                  minHeight: 80,
-                  maxHeight: 160,
-                  overflowY: "auto",
-                }}
-              >
-                {updateStatus.changelog || "Changelog появится после проверки обновлений."}
-              </div>
-            </div>
-          </>
+          <AboutSettings
+            includePrerelease={!!settings.includePrerelease}
+            onTogglePrerelease={(v) => update("includePrerelease", v)}
+          />
         )}
       </div>
       </div>
